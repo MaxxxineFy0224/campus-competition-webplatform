@@ -37,6 +37,24 @@
           <component :is="item.icon" class="nav-link-icon" />
           {{ item.label }}
         </RouterLink>
+
+        <!-- 用户区域 -->
+        <div class="navbar-user">
+          <template v-if="isLoggedIn && user">
+            <div class="user-avatar">{{ user.name?.charAt(0)?.toUpperCase() || 'U' }}</div>
+            <span class="user-name">{{ user.name }}</span>
+            <button class="btn-logout" @click="handleLogout" title="退出登录">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </template>
+          <template v-else>
+            <button class="btn-login" @click="handleLogin">登录</button>
+          </template>
+        </div>
       </div>
     </div>
   </nav>
@@ -44,31 +62,38 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, h } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuth } from '../composables/useAuth'
 
+const route = useRoute()
+const router = useRouter()
+const { isLoggedIn, user, showLogin, logout } = useAuth()
+const menuOpen = ref(false)
+const isScrolled = ref(false)
+
+// 路由切换时关闭菜单
+import { watch } from 'vue'
+watch(() => route.path, () => { menuOpen.value = false })
+
+// ---- SVG Icons ----
 const HomeIcon = h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
   h('path', { d: 'm3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' }),
   h('polyline', { points: '9 22 9 12 15 12 15 22' }),
 ])
-
 const TeamIcon = h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
   h('path', { d: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' }),
   h('circle', { cx: 9, cy: 7, r: 4 }),
   h('path', { d: 'M23 21v-2a4 4 0 0 0-3-3.87' }),
   h('path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' }),
 ])
-
 const PublishIcon = h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
-  h('path', { d: 'M12 5v14' }),
-  h('path', { d: 'M5 12h14' }),
+  h('path', { d: 'M12 5v14' }), h('path', { d: 'M5 12h14' }),
 ])
-
 const AiIcon = h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
   h('path', { d: 'M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z' }),
   h('path', { d: 'M5 15a7 7 0 0 1 14 0v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-1Z' }),
   h('path', { d: 'M8 18v2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2' }),
 ])
-
 const UserIcon = h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
   h('path', { d: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' }),
   h('circle', { cx: 12, cy: 7, r: 4 }),
@@ -82,13 +107,22 @@ const NAV_ITEMS = [
   { path: '/mine', label: '个人中心', icon: UserIcon },
 ]
 
-const route = useRoute()
-const menuOpen = ref(false)
-const isScrolled = ref(false)
-
 function isActive(path) {
   if (path === '/') return route.path === '/'
   return route.path.startsWith(path)
+}
+
+function handleLogin() {
+  showLogin(() => {
+    router.push('/')
+  })
+}
+
+function handleLogout() {
+  logout()
+  if (route.meta.requiresAuth) {
+    router.push('/')
+  }
 }
 
 function handleScroll() {
@@ -98,22 +132,197 @@ function handleScroll() {
 onMounted(() => {
   window.addEventListener('scroll', handleScroll, { passive: true })
 })
-
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
 <style scoped>
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+.navbar.scrolled {
+  border-bottom-color: var(--border);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+}
+
+.navbar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 3vw, 48px);
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.navbar-logo svg {
+  color: var(--primary);
+}
+
+.navbar-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navbar-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.navbar-link:hover {
+  background: rgba(102, 126, 234, 0.08);
+  color: var(--primary);
+}
+.navbar-link.active {
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ---- 用户区域 ---- */
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-logout {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-logout:hover {
+  background: #fee2e2;
+  color: #e74c3c;
+}
+
+.btn-login {
+  padding: 7px 18px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-login:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* ---- 响应式 ---- */
+@media (max-width: 768px) {
+  .navbar-menu-btn {
+    display: flex;
+  }
+
+  .navbar-links {
+    display: none;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    flex-direction: column;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+  .navbar-links.open {
+    display: flex;
+  }
+
+  .navbar-link {
+    width: 100%;
+    padding: 12px 16px;
+  }
+
+  .navbar-user {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+    padding: 8px 16px;
+    justify-content: space-between;
+  }
+}
+
 .nav-link-icon {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-}
-
-@media (max-width: 768px) {
-  .nav-link-icon {
-    margin-right: 8px;
-  }
 }
 </style>

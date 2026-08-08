@@ -194,6 +194,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { getCompetitions, getFavorites, toggleFavorite } from '../utils/storage'
 import { useToast } from '../composables/useToast'
+import { useAuth } from '../composables/useAuth'
 import HeartIcon from '../components/HeartIcon.vue'
 
 const CATEGORY_TABS = ['全部', '学科竞赛', '创新创业', '文体活动']
@@ -279,6 +280,11 @@ function isFav(id) {
 function handleToggleFav(id, e) {
   e.preventDefault()
   e.stopPropagation()
+  const { isLoggedIn, showLogin } = useAuth()
+  if (!isLoggedIn.value) {
+    showLogin()
+    return
+  }
   const updated = toggleFavorite(id, 'competition')
   favorites.value = updated
   const nowFav = updated.some((f) => f.id === id && f.type === 'competition')

@@ -143,7 +143,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { getUser, getTeamPosts, saveTeamPosts } from '../utils/storage'
+import { getUser, getTeamPosts, saveTeamPosts, publishTeamPost } from '../utils/storage'
 import { useToast } from '../composables/useToast'
 import FormField from '../components/FormField.vue'
 
@@ -236,6 +236,17 @@ function handleSubmit() {
       teamDeadline: form.teamDeadline,
     }
     saveTeamPosts([newPost, ...posts])
+    // 异步提交到后端
+    publishTeamPost({
+      competitionId: 1,
+      title: newPost.title,
+      description: newPost.description,
+      skills: newPost.skills,
+      contact: newPost.contact,
+      teamDeadline: form.teamDeadline,
+      needCount: 1,
+    }).then(() => console.log('[API] 组队帖已提交到后端'))
+      .catch(e => console.warn('[API] 后端提交失败，已保存到本地:', e.message))
     toast.success('发布成功！')
     setTimeout(() => router.push('/team'), 2000)
   } catch (err) { toast.error('发布失败，请稍后重试'); submitting.value = false }

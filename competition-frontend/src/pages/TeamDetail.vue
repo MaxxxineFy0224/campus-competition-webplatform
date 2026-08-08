@@ -117,6 +117,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getTeamPostById, getCompetitionById, getFavorites, toggleFavorite } from '../utils/storage'
 import { useToast } from '../composables/useToast'
+import { useAuth } from '../composables/useAuth'
 import HeartIcon from '../components/HeartIcon.vue'
 
 const route = useRoute()
@@ -167,6 +168,11 @@ const isFav = computed(() =>
 )
 
 function handleToggleFav() {
+  const { isLoggedIn, showLogin } = useAuth()
+  if (!isLoggedIn.value) {
+    showLogin()
+    return
+  }
   const updated = toggleFavorite(route.params.id, 'team')
   favorites.value = updated
   const nowFav = updated.some((f) => f.id === route.params.id && f.type === 'team')

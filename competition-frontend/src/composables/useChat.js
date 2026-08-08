@@ -53,17 +53,18 @@ export function useChat() {
     isLoading.value = false
   }
 
-  /** 真实 SSE 请求 */
+  /** 真实 SSE 请求 —— 连接后端 /api/chat，自动携带 JWT */
   async function doStreamingFetch(text) {
     abortController = new AbortController()
 
+    const headers = { 'Content-Type': 'application/json' }
+    const token = localStorage.getItem('auth_token')
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
     const response = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: messages.value.slice(0, -1), // 不含刚 push 的用户消息
-        userMessage: text,
-      }),
+      headers,
+      body: JSON.stringify({ message: text }),
       signal: abortController.signal,
     })
 
@@ -72,23 +73,35 @@ export function useChat() {
     addAiMessage()
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
+    let currentEvent = 'message'
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
       const chunk = decoder.decode(value, { stream: true })
-      // SSE 格式：data: {...}\n\n
+      // SSE 格式解析
       const lines = chunk.split('\n')
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const parsed = JSON.parse(line.slice(6))
-            if (parsed.content) updateLastAiContent(parsed.content)
-          } catch {
-            // 非 JSON 的 SSE data 行，直接追加
-            updateLastAiContent(line.slice(6))
+        if (line.startsWith('event: ')) {
+          currentEvent = line.slice(7).trim()
+        } else if (line.startsWith('data: ')) {
+          const dataStr = line.slice(6)
+          if (currentEvent === 'error') {
+            try {
+              const parsed = JSON.parse(dataStr)
+              updateLastAiContent('⚠️ ' + (parsed.message || 'AI 服务异常'))
+            } catch { updateLastAiContent('⚠️ 服务异常，请稍后重试') }
+            return
           }
+          if (currentEvent === 'done') return // 流结束
+          // 普通 content 追加
+          try {
+            const parsed = JSON.parse(dataStr)
+            if (parsed.content) updateLastAiContent(parsed.content)
+          } catch { /* skip non-JSON */ }
         }
+        // 空行 → 事件结束
+        if (line === '') currentEvent = 'message'
       }
     }
   }

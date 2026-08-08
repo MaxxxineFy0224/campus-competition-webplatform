@@ -128,6 +128,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getCompetitionById, getFavorites, toggleFavorite, getTeamPosts } from '../utils/storage'
 import { useToast } from '../composables/useToast'
+import { useAuth } from '../composables/useAuth'
 import HeartIcon from '../components/HeartIcon.vue'
 import InfoCell from '../components/InfoCell.vue'
 
@@ -179,6 +180,11 @@ const isFav = computed(() =>
 )
 
 function handleToggleFav() {
+  const { isLoggedIn, showLogin } = useAuth()
+  if (!isLoggedIn.value) {
+    showLogin()
+    return
+  }
   const updated = toggleFavorite(route.params.id, 'competition')
   favorites.value = updated
   const nowFav = updated.some((f) => f.id === route.params.id && f.type === 'competition')
