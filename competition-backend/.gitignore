@@ -1,0 +1,28 @@
+# 编译输出
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# 依赖
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+logs/
+*.log
+
+# 环境配置
+application.yml
+application-mysql.yml
+
+.env

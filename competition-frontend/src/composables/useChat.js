@@ -61,7 +61,7 @@ export function useChat() {
     const token = localStorage.getItem('auth_token')
     if (token) headers['Authorization'] = `Bearer ${token}`
 
-    const response = await fetch('/api/chat', {
+    const response = await fetch('/api/ai/stream/chat', {
       method: 'POST',
       headers,
       body: JSON.stringify({ message: text }),
@@ -82,10 +82,16 @@ export function useChat() {
       // SSE 格式解析
       const lines = chunk.split('\n')
       for (const line of lines) {
-        if (line.startsWith('event: ')) {
-          currentEvent = line.slice(7).trim()
-        } else if (line.startsWith('data: ')) {
-          const dataStr = line.slice(6)
+        // 空行 → 事件结束
+        if (line === '') {
+          currentEvent = 'message'
+          continue
+        }
+        // 容错：event: / data: 后面可能有空格也可能没有（Spring SseEmitter 不带空格）
+        if (line.startsWith('event:')) {
+          currentEvent = line.slice(6).trim()
+        } else if (line.startsWith('data:')) {
+          const dataStr = line.slice(5).trim()
           if (currentEvent === 'error') {
             try {
               const parsed = JSON.parse(dataStr)
@@ -100,8 +106,6 @@ export function useChat() {
             if (parsed.content) updateLastAiContent(parsed.content)
           } catch { /* skip non-JSON */ }
         }
-        // 空行 → 事件结束
-        if (line === '') currentEvent = 'message'
       }
     }
   }

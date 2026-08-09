@@ -75,9 +75,9 @@ async function streamRequest(path, body, onChunk) {
     const chunk = decoder.decode(value, { stream: true });
     const lines = chunk.split('\n');
     for (const line of lines) {
-      if (line.startsWith('data: ')) {
+      if (line.startsWith('data:')) {
         try {
-          const parsed = JSON.parse(line.slice(6));
+          const parsed = JSON.parse(line.slice(5).trim());
           if (onChunk) onChunk(parsed);
         } catch { /* skip */ }
       }
@@ -139,7 +139,7 @@ export const api = {
 
   /* ---- AI 聊天 ---- */
   chatStream: (message, onChunk) =>
-    api.stream('/chat', { message }, onChunk),
+    api.stream('/ai/stream/chat', { message }, onChunk),
   chat: (message) =>
     api.post('/ai-match/chat', { message }),
 };
