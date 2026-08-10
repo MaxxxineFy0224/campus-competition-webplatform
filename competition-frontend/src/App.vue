@@ -1,5 +1,5 @@
 <script setup>
-import { RouterView, useRouter } from 'vue-router'
+import { RouterView, useRouter, useRoute } from 'vue-router'
 import { watch, ref, onMounted, onUnmounted } from 'vue'
 import Navbar from './components/Navbar.vue'
 import LoginModal from './components/LoginModal.vue'
@@ -13,6 +13,7 @@ initMockData()
 syncAllData()
 
 const router = useRouter()
+const route = useRoute()
 const routeKey = ref(0)
 const showBackToTop = ref(false)
 const scrollProgress = ref(0)
@@ -45,7 +46,7 @@ onUnmounted(() => {
 <template>
   <div class="app-layout">
     <Navbar />
-    <main class="main-content">
+    <main :class="['main-content', { 'has-navbar': route.path !== '/' }]">
       <RouterView :key="routeKey" v-slot="{ Component }">
         <transition name="page" mode="out-in">
           <component :is="Component" />
@@ -136,6 +137,9 @@ img {
 
 .main-content {
   flex: 1;
+}
+
+.main-content.has-navbar {
   padding-top: 64px;
 }
 

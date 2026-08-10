@@ -14,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -65,7 +67,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<TeamPost> getUserPosts(Long userId) {
-        if (userMapper.selectById(userId) == null) {
+        User author = userMapper.selectById(userId);
+        if (author == null) {
             throw new BusinessException(404, "用户不存在");
         }
 
@@ -75,19 +78,22 @@ public class UserServiceImpl implements UserService {
 
         List<TeamPost> posts = teamPostMapper.selectList(wrapper);
 
-        // 填充联表字段
-        posts.forEach(post -> {
-            if (post.getCompetitionId() != null) {
-                Competition comp = competitionMapper.selectById(post.getCompetitionId());
-                if (comp != null) {
-                    post.setCompetitionTitle(comp.getTitle());
-                }
+        // 批量填充竞赛信息（消除 N+1）
+        Set<Long> compIds = posts.stream()
+                .map(TeamPost::getCompetitionId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, Competition> compMap = compIds.isEmpty() ? Map.of()
+                : competitionMapper.selectBatchIds(compIds).stream()
+                    .collect(Collectors.toMap(Competition::getId, Function.identity()));
+
+        for (TeamPost post : posts) {
+            post.setAuthorName(author.getName());
+            Competition comp = compMap.get(post.getCompetitionId());
+            if (comp != null) {
+                post.setCompetitionTitle(comp.getTitle());
             }
-            User author = userMapper.selectById(userId);
-            if (author != null) {
-                post.setAuthorName(author.getName());
-            }
-        });
+        }
 
         return posts;
     }
@@ -102,20 +108,19 @@ public class UserServiceImpl implements UserService {
             return competitionMapper.findFavoritesByUserId(userId);
         } else if ("team".equals(type)) {
             List<TeamPost> posts = teamPostMapper.findFavoritesByUserId(userId);
-            posts.forEach(post -> {
-                if (post.getCompetitionId() != null) {
-                    Competition comp = competitionMapper.selectById(post.getCompetitionId());
-                    if (comp != null) {
-                        post.setCompetitionTitle(comp.getTitle());
-                    }
-                }
-                if (post.getAuthorId() != null) {
-                    User author = userMapper.selectById(post.getAuthorId());
-                    if (author != null) {
-                        post.setAuthorName(author.getName());
-                    }
-                }
-            });
+            // 批量填充联表字段（消除 N+1）
+            Set<Long> compIds = posts.stream().map(TeamPost::getCompetitionId).filter(Objects::nonNull).collect(Collectors.toSet());
+            Set<Long> authorIds = posts.stream().map(TeamPost::getAuthorId).filter(Objects::nonNull).collect(Collectors.toSet());
+            Map<Long, Competition> compMap = compIds.isEmpty() ? Map.of()
+                    : competitionMapper.selectBatchIds(compIds).stream().collect(Collectors.toMap(Competition::getId, Function.identity()));
+            Map<Long, User> userMap = authorIds.isEmpty() ? Map.of()
+                    : userMapper.selectBatchIds(authorIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+            for (TeamPost post : posts) {
+                Competition comp = compMap.get(post.getCompetitionId());
+                if (comp != null) post.setCompetitionTitle(comp.getTitle());
+                User u = userMap.get(post.getAuthorId());
+                if (u != null) post.setAuthorName(u.getName());
+            }
             return posts;
         }
 

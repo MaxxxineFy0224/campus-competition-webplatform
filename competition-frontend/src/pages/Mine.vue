@@ -183,16 +183,22 @@ async function handleSaveProfile() {
   if (!editForm.name.trim()) { toast.error('请输入昵称'); return }
   try {
     if (isLoggedIn.value && userProfile.value?.id) {
-      await updateUserApi(userProfile.value.id, {
+      const updated = await updateUserApi(userProfile.value.id, {
         name: editForm.name.trim(),
         school: editForm.school.trim(),
         major: editForm.major.trim(),
         grade: editForm.grade.trim(),
       })
+      // 用后端返回的最新数据更新本地 — 合并而非覆盖
+      if (updated) {
+        saveUser(updated)
+        userProfile.value = updated
+      }
     }
-    const localUser = { name: editForm.name.trim(), school: editForm.school.trim(), major: editForm.major.trim(), grade: editForm.grade.trim(), createdAt: new Date().toISOString() }
-    saveUser(localUser)
-    userProfile.value = { ...userProfile.value, ...localUser }
+    // 合并更新本地 user（仅覆盖编辑过的字段，保留 id/avatar/bio/skills 等）
+    const merged = { ...userProfile.value, name: editForm.name.trim(), school: editForm.school.trim(), major: editForm.major.trim(), grade: editForm.grade.trim() }
+    saveUser(merged)
+    userProfile.value = merged
     editMode.value = false
     toast.success('个人信息已更新')
   } catch (e) {
@@ -230,6 +236,12 @@ function refresh() {
 async function handleDelete(post) {
   const ok = await confirm(`确认删除「${post.title}」？\n\n删除后无法恢复。`, '删除组队帖')
   if (!ok) return
+  try {
+    await api.deleteTeamPost(parseInt(post.id, 10))
+  } catch (e) {
+    toast.error('删除失败: ' + (e.message || '未知错误'))
+    return
+  }
   const updated = teamPosts.value.filter(p => p.id !== post.id)
   saveTeamPosts(updated)
   teamPosts.value = updated

@@ -42,6 +42,14 @@ export function toggleFavorite(id, type) {
   if (idx > -1) favs.splice(idx, 1)
   else favs.push({ id, type })
   set(KEY_FAVORITES, favs)
+
+  // 同步调用后端 API
+  if (type === 'competition') {
+    api.toggleCompetitionFavorite(parseInt(id, 10)).catch(() => {})
+  } else if (type === 'team') {
+    api.toggleTeamPostFavorite(parseInt(id, 10)).catch(() => {})
+  }
+
   return favs
 }
 

@@ -19,7 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,8 +52,8 @@ public class TeamPostServiceImpl implements TeamPostService {
 
         Page<TeamPost> result = teamPostMapper.selectPage(new Page<>(page, size), wrapper);
 
-        // 填充联表字段
-        result.getRecords().forEach(this::enrichPost);
+        // 批量填充联表字段（消除 N+1）
+        enrichPosts(result.getRecords());
 
         return result;
     }
@@ -138,7 +139,7 @@ public class TeamPostServiceImpl implements TeamPostService {
     @Override
     public Page<TeamPost> listFavorites(Long userId, int page, int size) {
         List<TeamPost> allFavs = teamPostMapper.findFavoritesByUserId(userId);
-        allFavs.forEach(this::enrichPost);
+        enrichPosts(allFavs);
 
         int total = allFavs.size();
         int start = (page - 1) * size;
@@ -153,31 +154,50 @@ public class TeamPostServiceImpl implements TeamPostService {
     /* ---- 工具方法 ---- */
 
     /**
-     * 填充联表字段（作者名、竞赛名）并计算是否过期
+     * 批量填充联表字段（作者名、竞赛名）并计算是否过期
+     *
+     * 消除 N+1：先批量查出所有涉及的竞赛和用户，再在内存中赋值。
      */
-    private void enrichPost(TeamPost post) {
-        // 竞赛信息
-        if (post.getCompetitionId() != null) {
-            Competition comp = competitionMapper.selectById(post.getCompetitionId());
+    private void enrichPosts(List<TeamPost> posts) {
+        if (posts.isEmpty()) return;
+
+        // 收集所有需要查的 ID
+        List<Long> compIds = posts.stream()
+                .map(TeamPost::getCompetitionId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        List<Long> authorIds = posts.stream()
+                .map(TeamPost::getAuthorId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        // 批量查
+        Map<Long, Competition> compMap = compIds.isEmpty() ? Map.of()
+                : competitionMapper.selectBatchIds(compIds).stream()
+                    .collect(Collectors.toMap(Competition::getId, c -> c));
+        Map<Long, User> userMap = authorIds.isEmpty() ? Map.of()
+                : userMapper.selectBatchIds(authorIds).stream()
+                    .collect(Collectors.toMap(User::getId, u -> u));
+
+        LocalDate today = LocalDate.now();
+        for (TeamPost post : posts) {
+            Competition comp = compMap.get(post.getCompetitionId());
             if (comp != null) {
                 post.setCompetitionTitle(comp.getTitle());
                 post.setCompetitionCategory(comp.getCategory());
             }
-        }
-
-        // 作者信息
-        if (post.getAuthorId() != null) {
-            User user = userMapper.selectById(post.getAuthorId());
+            User user = userMap.get(post.getAuthorId());
             if (user != null) {
                 post.setAuthorName(user.getName());
             }
+            post.setExpired(post.getDeadline() != null && post.getDeadline().isBefore(today));
         }
+    }
 
-        // 是否过期
-        if (post.getDeadline() != null) {
-            post.setExpired(post.getDeadline().isBefore(LocalDate.now()));
-        } else {
-            post.setExpired(false);
-        }
+    /** 保留单条填充（详情接口使用） */
+    private void enrichPost(TeamPost post) {
+        enrichPosts(List.of(post));
     }
 }

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw compile *)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Users/FPTY1/AppData/Local/Programs/**)"
+    ]
+  }
+}

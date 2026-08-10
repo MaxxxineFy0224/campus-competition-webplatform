@@ -1,7 +1,7 @@
 <template>
-  <nav :class="['navbar', { scrolled: isScrolled }]">
+  <nav v-if="route.path !== '/'" :class="['navbar', { scrolled: isScrolled }]">
     <div class="navbar-inner">
-      <RouterLink to="/" class="navbar-logo">
+      <RouterLink to="/home" class="navbar-logo">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 6 9 6 9z" />
           <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 18 9 18 9z" />
@@ -100,7 +100,7 @@ const UserIcon = h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: '
 ])
 
 const NAV_ITEMS = [
-  { path: '/', label: '竞赛首页', icon: HomeIcon },
+  { path: '/home', label: '竞赛首页', icon: HomeIcon },
   { path: '/team', label: '组队广场', icon: TeamIcon },
   { path: '/publish', label: '发布组队', icon: PublishIcon },
   { path: '/ai-match', label: 'AI匹配', icon: AiIcon },
@@ -108,21 +108,18 @@ const NAV_ITEMS = [
 ]
 
 function isActive(path) {
-  if (path === '/') return route.path === '/'
   return route.path.startsWith(path)
 }
 
 function handleLogin() {
   showLogin(() => {
-    router.push('/')
+    router.push('/home')
   })
 }
 
 function handleLogout() {
   logout()
-  if (route.meta.requiresAuth) {
-    router.push('/')
-  }
+  router.push('/')
 }
 
 function handleScroll() {

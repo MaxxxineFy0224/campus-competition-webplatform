@@ -1,6 +1,5 @@
 package com.jingdui.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,9 +7,10 @@ import org.springframework.context.annotation.Configuration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * HTTP 客户端配置 —— OkHttp + Jackson
+ * HTTP 客户端配置 —— OkHttp
  *
- * 用于调用硅基流动 API（OpenAI 兼容协议），不引入 Spring AI 重型 SDK。
+ * 用于调用硅基流动 API（OpenAI 兼容协议）。
+ * ObjectMapper 由 Spring Boot 自动配置（包含 JavaTimeModule），此处不再覆盖。
  */
 @Configuration
 public class ChatClientConfig {
@@ -19,13 +19,8 @@ public class ChatClientConfig {
     public OkHttpClient okHttpClient() {
         return new OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(120, TimeUnit.SECONDS)   // 流式响应超时较长
+                .readTimeout(120, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .build();
-    }
-
-    @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
     }
 }
