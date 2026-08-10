@@ -142,6 +142,8 @@
 <script setup>
 import { ref, nextTick, watch } from 'vue'
 import { useChat } from '../composables/useChat'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 const { messages, isLoading, sendMessage, clearMessages } = useChat()
 
@@ -209,23 +211,11 @@ watch(isLoading, (loading) => {
   if (!loading) scrollToBottom()
 })
 
-/** 渲染 Markdown（简单处理器） */
+/** 渲染 Markdown（marked + DOMPurify 防 XSS） */
 function renderMarkdown(text) {
   if (!text) return ''
-  let html = text
-    // 转义 HTML
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    // **粗体**
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // 换行转 <br/>
-    .replace(/\n/g, '<br/>')
-    // 数字列表
-    .replace(/(\d+)\.\s+/g, '<span class="list-num">$1.</span> ')
-    // 无序列表项
-    .replace(/•\s+/g, '<span class="list-dot">•</span> ')
-  return html
+  const raw = marked.parse(text, { breaks: true, gfm: true })
+  return DOMPurify.sanitize(raw)
 }
 </script>
 
@@ -417,15 +407,15 @@ function renderMarkdown(text) {
   margin: 4px 0;
 }
 
-.ai-text :deep(.list-num) {
-  font-weight: 700;
-  color: #7c3aed;
-  margin-right: 4px;
+.ai-text :deep(ol) {
+  margin: 8px 0;
+  padding-left: 22px;
+  list-style: decimal;
 }
 
-.ai-text :deep(.list-dot) {
+.ai-text :deep(ol li::marker) {
   color: #7c3aed;
-  margin-right: 4px;
+  font-weight: 700;
 }
 
 .ai-text :deep(ul) {
@@ -434,18 +424,114 @@ function renderMarkdown(text) {
   list-style: none;
 }
 
-.ai-text :deep(li) {
+.ai-text :deep(ul > li) {
   position: relative;
   padding-left: 16px;
   margin-bottom: 4px;
 }
 
-.ai-text :deep(li::before) {
+.ai-text :deep(ul > li::before) {
   content: '•';
   position: absolute;
   left: 0;
   color: #7c3aed;
   font-weight: 700;
+}
+
+.ai-text :deep(ol > li) {
+  margin-bottom: 4px;
+}
+
+.ai-text :deep(code) {
+  background: #f3f0ff;
+  color: #7c3aed;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.ai-text :deep(pre) {
+  background: #1e1b2e;
+  color: #e0d6ff;
+  padding: 12px 16px;
+  border-radius: 10px;
+  overflow-x: auto;
+  margin: 8px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ai-text :deep(pre code) {
+  background: none;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.ai-text :deep(blockquote) {
+  border-left: 3px solid #c4b5fd;
+  margin: 8px 0;
+  padding: 4px 0 4px 14px;
+  color: #6d6a7c;
+  font-style: italic;
+}
+
+.ai-text :deep(em) {
+  font-style: italic;
+  color: #5b5a6e;
+}
+
+.ai-text :deep(a) {
+  color: #7c3aed;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ai-text :deep(h1), .ai-text :deep(h2), .ai-text :deep(h3),
+.ai-text :deep(h4), .ai-text :deep(h5), .ai-text :deep(h6) {
+  margin: 10px 0 6px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #3b2e5a;
+}
+
+.ai-text :deep(h1) { font-size: 18px; }
+.ai-text :deep(h2) { font-size: 16px; }
+.ai-text :deep(h3) { font-size: 15px; }
+
+.ai-text :deep(hr) {
+  border: none;
+  border-top: 1px solid #e5e0f0;
+  margin: 10px 0;
+}
+
+.ai-text :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.ai-text :deep(th) {
+  background: #f3f0ff;
+  color: #7c3aed;
+  font-weight: 600;
+  padding: 6px 10px;
+  border: 1px solid #e5e0f0;
+  text-align: left;
+}
+
+.ai-text :deep(td) {
+  padding: 6px 10px;
+  border: 1px solid #e5e0f0;
+}
+
+.ai-text :deep(img) {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 6px 0;
 }
 
 /* ===== 快捷问题 ===== */
