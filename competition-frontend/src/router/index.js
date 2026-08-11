@@ -9,6 +9,8 @@ const routes = [
   { path: '/publish', component: () => import('../pages/Publish.vue'), meta: { requiresAuth: true } },
   { path: '/ai-match', component: () => import('../pages/AiMatch.vue'), meta: { requiresAuth: true } },
   { path: '/mine', component: () => import('../pages/Mine.vue'), meta: { requiresAuth: true } },
+  { path: '/applications/:teamPostId', component: () => import('../pages/ApplicationManage.vue'), meta: { requiresAuth: true } },
+  { path: '/messages', component: () => import('../pages/MessageCenter.vue'), meta: { requiresAuth: true } },
 ]
 
 const router = createRouter({

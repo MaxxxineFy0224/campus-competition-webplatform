@@ -137,6 +137,41 @@ export const api = {
   getFavoriteTeamPosts: (page = 1, size = 50) =>
     api.get(`/team-posts/favorites?page=${page}&size=${size}`),
 
+  /* ---- 组队申请 ---- */
+  applyTeamPost: (teamPostId, message) =>
+    api.post('/team-applications', { teamPostId, message }),
+  getTeamApplications: (teamPostId) =>
+    api.get(`/team-applications?teamPostId=${teamPostId}`),
+  approveApplication: (id) =>
+    api.put(`/team-applications/${id}/approve`),
+  rejectApplication: (id, reason) =>
+    api.put(`/team-applications/${id}/reject`, { reason }),
+  getMyApplications: () =>
+    api.get('/team-applications/my'),
+
+  /* ---- 消息通知 ---- */
+  getNotifications: (type = '', page = 1, size = 20) => {
+    const qs = new URLSearchParams({ page: String(page), size: String(size) });
+    if (type) qs.set('type', type);
+    return api.get(`/notifications?${qs.toString()}`);
+  },
+  getUnreadNotificationCount: () =>
+    api.get('/notifications/unread-count'),
+  markNotificationRead: (id) =>
+    api.put(`/notifications/${id}/read`),
+  markAllNotificationsRead: () =>
+    api.put('/notifications/read-all'),
+
+  /* ---- 评论 ---- */
+  getComments: (teamPostId, page = 1, size = 20) =>
+    api.get(`/comments?teamPostId=${teamPostId}&page=${page}&size=${size}`),
+  createComment: (teamPostId, content, parentId) =>
+    api.post('/comments', { teamPostId, content, parentId }),
+  deleteComment: (id) =>
+    api.delete(`/comments/${id}`),
+  likeComment: (id) =>
+    api.post(`/comments/${id}/like`),
+
   /* ---- AI 聊天 ---- */
   chatStream: (message, onChunk) =>
     api.stream('/ai/stream/chat', { message }, onChunk),

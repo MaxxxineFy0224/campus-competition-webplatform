@@ -99,6 +99,19 @@
 
         <!-- 安全提示 -->
         <p class="safety-tip">🔒 同校同学请文明沟通，注意保护个人信息</p>
+
+        <!-- 底部操作按钮 -->
+        <div class="bottom-actions">
+          <button class="btn btn-apply" :disabled="expired" @click="handleApply">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <line x1="19" y1="8" x2="19" y2="14"/>
+              <line x1="22" y1="11" x2="16" y2="11"/>
+            </svg>
+            {{ expired ? '已过期' : '申请加入' }}
+          </button>
+        </div>
       </div>
 
       <!-- 404 状态 -->
@@ -109,6 +122,15 @@
         <RouterLink to="/team" class="btn btn-primary btn-lg">返回组队广场</RouterLink>
       </div>
     </div>
+
+    <!-- 组队申请弹窗 -->
+    <ApplyModal
+      :visible="showApply"
+      :team-post-id="route.params.id"
+      :post-title="post?.title || ''"
+      @close="showApply = false"
+      @applied="showApply = false"
+    />
   </div>
 </template>
 
@@ -119,6 +141,7 @@ import { getTeamPostById, getCompetitionById, getFavorites, toggleFavorite } fro
 import { useToast } from '../composables/useToast'
 import { useAuth } from '../composables/useAuth'
 import HeartIcon from '../components/HeartIcon.vue'
+import ApplyModal from '../components/ApplyModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -129,6 +152,7 @@ const comp = ref(null)
 const favorites = ref([])
 const copied = ref(false)
 const expired = ref(false)
+const showApply = ref(false)
 
 function isExpiredByDeadline(p, c) {
   const deadlineStr = p.teamDeadline || c?.deadline
@@ -187,6 +211,15 @@ async function handleCopyContact() {
     toast.success('联系方式已复制')
     setTimeout(() => { copied.value = false }, 2000)
   } catch { toast.error('复制失败，请手动记录') }
+}
+
+function handleApply() {
+  const { isLoggedIn, showLogin } = useAuth()
+  if (!isLoggedIn.value) {
+    showLogin()
+    return
+  }
+  showApply.value = true
 }
 </script>
 
@@ -524,6 +557,46 @@ async function handleCopyContact() {
   background: #fafafa;
   border-radius: var(--radius-md, 10px);
   border: 1px dashed var(--color-border-light, #f0f0f0);
+}
+
+/* ===== 底部操作按钮 ===== */
+.bottom-actions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border-light, #f0f0f0);
+}
+
+.btn-apply {
+  width: 100%;
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #1677ff, #722ed1);
+  color: #fff;
+  transition: all 0.2s ease;
+}
+
+.btn-apply:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(22, 119, 255, 0.35);
+}
+
+.btn-apply:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-apply:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #e0e0e0;
+  color: #999;
 }
 
 /* ===== 空状态 ===== */
