@@ -22,7 +22,8 @@ logs/
 *.log
 
 # 环境配置
-application.yml
-application-mysql.yml
+# application.yml
+# application-mysql.yml
 
+# 配置数据库连接和 JWT 密钥
 .env

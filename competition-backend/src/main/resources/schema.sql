@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS favorites (
 );
 
 -- 联合唯一索引：同一用户不能重复收藏同一对象
-CREATE UNIQUE INDEX IF NOT EXISTS uk_user_item ON favorites (user_id, item_id, item_type);
+CREATE UNIQUE INDEX uk_user_item ON favorites (user_id, item_id, item_type);
 
 -- ============================================
 -- 组队申请表
@@ -81,11 +81,11 @@ CREATE TABLE IF NOT EXISTS team_applications (
 );
 
 -- 唯一约束：同一用户对同一帖子只能有一条申请
-CREATE UNIQUE INDEX IF NOT EXISTS uk_team_post_applicant ON team_applications (team_post_id, applicant_id);
+CREATE UNIQUE INDEX uk_team_post_applicant ON team_applications (team_post_id, applicant_id);
 -- 查询索引：帖子作者查看所有申请
-CREATE INDEX IF NOT EXISTS idx_ta_team_post ON team_applications (team_post_id, status);
+CREATE INDEX idx_ta_team_post ON team_applications (team_post_id, status);
 -- 查询索引：申请人查看自己的申请
-CREATE INDEX IF NOT EXISTS idx_ta_applicant ON team_applications (applicant_id);
+CREATE INDEX idx_ta_applicant ON team_applications (applicant_id);
 
 -- ============================================
 -- 消息通知表
@@ -104,11 +104,11 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- 查询索引：按用户查询未读通知（最常用场景）
-CREATE INDEX IF NOT EXISTS idx_notif_user_read ON notifications (user_id, is_read);
+CREATE INDEX idx_notif_user_read ON notifications (user_id, is_read);
 -- 查询索引：按时间倒序
-CREATE INDEX IF NOT EXISTS idx_notif_user_time ON notifications (user_id, created_at);
+CREATE INDEX idx_notif_user_time ON notifications (user_id, created_at);
 -- 查询索引：按关联业务跳转
-CREATE INDEX IF NOT EXISTS idx_notif_related ON notifications (related_type, related_id);
+CREATE INDEX idx_notif_related ON notifications (related_type, related_id);
 
 -- ============================================
 -- 评论表
@@ -125,8 +125,8 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 -- 查询索引：按帖子查评论列表（最常用场景）
-CREATE INDEX IF NOT EXISTS idx_comment_post ON comments (team_post_id, created_at);
+CREATE INDEX idx_comment_post ON comments (team_post_id, created_at);
 -- 查询索引：按父评论查回复
-CREATE INDEX IF NOT EXISTS idx_comment_parent ON comments (parent_id);
+CREATE INDEX idx_comment_parent ON comments (parent_id);
 -- 查询索引：按用户查评论
-CREATE INDEX IF NOT EXISTS idx_comment_user ON comments (user_id);
+CREATE INDEX idx_comment_user ON comments (user_id);
